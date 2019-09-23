@@ -2,7 +2,9 @@
 APPNAME    = orochi
 EXECUTABLE = $(CURDIR)/cmd/orochi/$(APPNAME)
 
-all:
+all: test lint build
+
+build:
 	cd $(CURDIR)/cmd/$(APPNAME); go build
 
 test:
