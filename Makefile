@@ -10,6 +10,11 @@ build:
 test:
 	go test -count 1 -cover ./...
 
+show-coverage:
+	go test -coverprofile=cover.out ./...
+	go tool cover -html=cover.out -o cover.html
+	open cover.html
+
 lint:
 	golangci-lint run --deadline 300s ./...
 
