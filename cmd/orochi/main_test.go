@@ -62,12 +62,13 @@ func TestTypicalUsecase(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resp.Body.Close()
 
 	retVal, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
+	resp.Body.Close()
+
 	if string(retVal) != "fuga" {
 		t.Errorf("unexpected result. got [%s], want [%s]", string(retVal), "fugaa")
 	}
