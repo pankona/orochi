@@ -47,7 +47,11 @@ func (o *Orochi) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		v, ok := o.kvstore[key]
 		if ok {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(v))
+			_, err := w.Write([]byte(v))
+			if err != nil {
+				log.Printf("failed to write response: %v", err)
+				return
+			}
 			log.Printf("return %s", v)
 			return
 		}
@@ -76,7 +80,10 @@ func (o *Orochi) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			log.Printf("stored: %s\n", v)
 
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(v))
+			_, err := w.Write([]byte(v))
+			if err != nil {
+				log.Printf("failed to write response: %v", err)
+			}
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)
@@ -118,7 +125,11 @@ func (o *Orochi) askGet(port int, key string) (string, bool) {
 		log.Println(err)
 		return "", false
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("failed close response body: %v", err)
+		}
+	}()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return "", false
@@ -141,7 +152,11 @@ func (o *Orochi) askPost(port int, key, value string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("failed close response body: %v", err)
+		}
+	}()
 
 	return nil
 }
