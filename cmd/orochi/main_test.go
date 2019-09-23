@@ -24,7 +24,7 @@ func setup() func() []error {
 		}(v)
 	}
 
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 
 	return func() []error {
 		errorlist := []error{}
@@ -48,28 +48,85 @@ func TestTypicalUsecase(t *testing.T) {
 		}
 	}()
 
+	err := post(portlist[0], "hoge", "fuga")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, port := range portlist {
+		ret, err := get(port, "hoge")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if string(ret) != "fuga" {
+			t.Errorf("unexpected result. got [%s], want [%s]", string(ret), "fuga")
+		}
+	}
+
+	err = post(portlist[1], "hoge", "piyo")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, port := range portlist {
+		ret, err := get(port, "hoge")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if string(ret) != "piyo" {
+			t.Errorf("unexpected result. got [%s], want [%s]", string(ret), "piyo")
+		}
+	}
+
+	err = post(portlist[2], "foo", "bar")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, port := range portlist {
+		ret, err := get(port, "foo")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if string(ret) != "bar" {
+			t.Errorf("unexpected result. got [%s], want [%s]", string(ret), "bar")
+		}
+	}
+}
+
+func post(port int, key, value string) error {
 	c := http.Client{}
-	p := strconv.Itoa(portlist[0])
-	key := "hoge"
-	value := "fuga"
+	p := strconv.Itoa(port)
+
 	resp, err := c.Post(fmt.Sprintf("http://127.0.0.1:%s/%s", p, key), "", bytes.NewBuffer([]byte(value)))
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
-	resp.Body.Close()
 
-	resp, err = c.Get(fmt.Sprintf("http://127.0.0.1:%s/%s", p, key))
+	return resp.Body.Close()
+}
+
+func get(port int, key string) (string, error) {
+	c := http.Client{}
+	p := strconv.Itoa(port)
+
+	resp, err := c.Get(fmt.Sprintf("http://127.0.0.1:%s/%s", p, key))
 	if err != nil {
-		t.Fatal(err)
+		return "", err
 	}
 
-	retVal, err := ioutil.ReadAll(resp.Body)
+	ret, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		t.Fatal(err)
+		return "", err
 	}
-	resp.Body.Close()
 
-	if string(retVal) != "fuga" {
-		t.Errorf("unexpected result. got [%s], want [%s]", string(retVal), "fugaa")
+	err = resp.Body.Close()
+	if err != nil {
+		return "", err
 	}
+
+	return string(ret), nil
 }

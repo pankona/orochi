@@ -2,6 +2,7 @@ package orochi
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -28,6 +29,10 @@ func (s *Server) Serve(port int) error {
 	}
 	log.Printf("server will start on port: %d\n", s.port)
 	return s.server.ListenAndServe()
+}
+
+func (s *Server) Shutdown() error {
+	return s.server.Shutdown(context.Background())
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
