@@ -1,4 +1,4 @@
-package main
+package orochi
 
 import (
 	"bytes"
@@ -11,20 +11,20 @@ import (
 )
 
 type Orochi struct {
-	server *http.Server
-	port   int
+	PortList []int
 
+	server  *http.Server
+	port    int
 	kvstore map[string]string
 }
 
 func (o *Orochi) Serve(port int) error {
 	o.port = port
+	o.kvstore = map[string]string{}
+
 	o.server = &http.Server{
-		Addr: ":" + strconv.Itoa(o.port),
-		Handler: &Orochi{
-			port:    o.port,
-			kvstore: map[string]string{},
-		},
+		Addr:    ":" + strconv.Itoa(o.port),
+		Handler: o,
 	}
 	log.Printf("server will start on port: %d\n", o.port)
 	return o.server.ListenAndServe()
@@ -45,7 +45,7 @@ func (o *Orochi) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			// ask to other server
 			log.Println("missed. ask to other server")
-			for _, p := range portList {
+			for _, p := range o.PortList {
 				if o.port == p {
 					log.Println("skip because this is me")
 					continue
@@ -89,7 +89,7 @@ func (o *Orochi) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		for _, p := range portList {
+		for _, p := range o.PortList {
 			err := o.askPost(p, key, string(v))
 			if err != nil {
 				log.Printf("failed to askPost: %v", err)
