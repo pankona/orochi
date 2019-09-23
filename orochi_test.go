@@ -59,8 +59,8 @@ func TestTypicalUsecase(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if string(ret) != "fuga" {
-			t.Errorf("unexpected result. got [%s], want [%s]", string(ret), "fuga")
+		if ret != "fuga" {
+			t.Errorf("unexpected result. got [%s], want [%s]", ret, "fuga")
 		}
 	}
 
@@ -75,8 +75,8 @@ func TestTypicalUsecase(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if string(ret) != "piyo" {
-			t.Errorf("unexpected result. got [%s], want [%s]", string(ret), "piyo")
+		if ret != "piyo" {
+			t.Errorf("unexpected result. got [%s], want [%s]", ret, "piyo")
 		}
 	}
 
@@ -91,8 +91,8 @@ func TestTypicalUsecase(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if string(ret) != "bar" {
-			t.Errorf("unexpected result. got [%s], want [%s]", string(ret), "bar")
+		if ret != "bar" {
+			t.Errorf("unexpected result. got [%s], want [%s]", ret, "bar")
 		}
 	}
 }

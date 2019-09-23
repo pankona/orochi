@@ -72,8 +72,8 @@ func (o *Orochi) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			log.Printf("hit on other server: %d", p)
-			o.kvstore[key] = string(v)
-			log.Printf("stored: %s\n", string(v))
+			o.kvstore[key] = v
+			log.Printf("stored: %s\n", v)
 
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(v))
@@ -89,7 +89,7 @@ func (o *Orochi) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		o.kvstore[key] = string(v)
-		log.Printf("stored: %s\n", string(v))
+		log.Printf("stored: %s\n", v)
 
 		q := r.URL.Query()
 		if q["asked"] != nil {
