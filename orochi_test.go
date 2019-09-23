@@ -20,7 +20,10 @@ func setup() func() []error {
 		go func(p int) {
 			o := &orochi.Orochi{PortList: portlist}
 			serverlist = append(serverlist, o)
-			o.Serve(p)
+			err := o.Serve(p)
+			if err != nil && err != http.ErrServerClosed {
+				panic(fmt.Sprintf("failed to launch server: %v", err))
+			}
 		}(v)
 	}
 
