@@ -48,7 +48,11 @@ func (o *Orochi) Shutdown() error {
 
 func (o *Orochi) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ss := strings.Split(r.URL.Path, "/")
-	key := ss[len(ss)-1]
+	if len(ss) != 1 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	key := ss[0]
 
 	switch r.Method {
 	case "GET":

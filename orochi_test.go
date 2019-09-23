@@ -12,7 +12,7 @@ import (
 	"github.com/pankona/orochi"
 )
 
-func setup() ([]int, []*orochi.Orochi, func() []error) {
+func setup() ([]*orochi.Orochi, func() []error) {
 	var (
 		portlist   = []int{3000, 3001, 3002}
 		serverlist = []*orochi.Orochi{}
@@ -30,7 +30,7 @@ func setup() ([]int, []*orochi.Orochi, func() []error) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	return portlist, serverlist, func() []error {
+	return serverlist, func() []error {
 		errorlist := []error{}
 		for i := range serverlist {
 			err := serverlist[i].Shutdown()
@@ -43,8 +43,7 @@ func setup() ([]int, []*orochi.Orochi, func() []error) {
 }
 
 func TestTypicalUsecase(t *testing.T) {
-	portlist, serverlist, teardown := setup()
-
+	serverlist, teardown := setup()
 	defer func() {
 		errlist := teardown()
 		if len(errlist) != 0 {
@@ -52,7 +51,7 @@ func TestTypicalUsecase(t *testing.T) {
 		}
 	}()
 
-	ret, err := get(portlist[0], "hoge")
+	ret, err := get(serverlist[0], "hoge")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -60,13 +59,13 @@ func TestTypicalUsecase(t *testing.T) {
 		t.Fatalf("unexpected result. got [%s], want [%s]", ret, "")
 	}
 
-	err = post(portlist[0], "hoge", "fuga")
+	err = post(serverlist[0], "hoge", "fuga")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	for _, port := range portlist {
-		ret, err := get(port, "hoge")
+	for _, server := range serverlist {
+		ret, err := get(server, "hoge")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -76,13 +75,13 @@ func TestTypicalUsecase(t *testing.T) {
 		}
 	}
 
-	err = post(portlist[1], "hoge", "piyo")
+	err = post(serverlist[1], "hoge", "piyo")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	for _, port := range portlist {
-		ret, err := get(port, "hoge")
+	for _, server := range serverlist {
+		ret, err := get(server, "hoge")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -92,13 +91,13 @@ func TestTypicalUsecase(t *testing.T) {
 		}
 	}
 
-	err = post(portlist[2], "foo", "bar")
+	err = post(serverlist[2], "foo", "bar")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	for _, port := range portlist {
-		ret, err := get(port, "foo")
+	for _, server := range serverlist {
+		ret, err := get(server, "foo")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -113,8 +112,8 @@ func TestTypicalUsecase(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	for _, port := range portlist {
-		ret, err := get(port, "foo")
+	for _, server := range serverlist {
+		ret, err := get(server, "foo")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -122,6 +121,30 @@ func TestTypicalUsecase(t *testing.T) {
 		if ret != "bar" {
 			t.Errorf("unexpected result. got [%s], want [%s]", ret, "bar")
 		}
+	}
+}
+
+func TestUnsupportedPath(t *testing.T) {
+	serverlist, teardown := setup()
+	defer func() {
+		errlist := teardown()
+		if len(errlist) != 0 {
+			t.Log(errlist)
+		}
+	}()
+
+	c := http.Client{}
+	p := strconv.Itoa(serverlist[0].Port())
+	key := "hoge"
+
+	resp, err := c.Get(fmt.Sprintf("http://127.0.0.1:%s/unknown/path/%s", p, key))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("unexpected result: got [%d], want [%d]", resp.StatusCode, http.StatusNotFound)
 	}
 }
 
@@ -139,9 +162,9 @@ func restart(o *orochi.Orochi) error {
 	return nil
 }
 
-func post(port int, key, value string) error {
+func post(o *orochi.Orochi, key, value string) error {
 	c := http.Client{}
-	p := strconv.Itoa(port)
+	p := strconv.Itoa(o.Port())
 
 	resp, err := c.Post(fmt.Sprintf("http://127.0.0.1:%s/%s", p, key), "", bytes.NewBuffer([]byte(value)))
 	if err != nil {
@@ -151,9 +174,9 @@ func post(port int, key, value string) error {
 	return resp.Body.Close()
 }
 
-func get(port int, key string) (string, error) {
+func get(o *orochi.Orochi, key string) (string, error) {
 	c := http.Client{}
-	p := strconv.Itoa(port)
+	p := strconv.Itoa(o.Port())
 
 	resp, err := c.Get(fmt.Sprintf("http://127.0.0.1:%s/%s", p, key))
 	if err != nil {
