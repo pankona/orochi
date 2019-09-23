@@ -47,12 +47,11 @@ func (o *Orochi) Shutdown() error {
 }
 
 func (o *Orochi) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ss := strings.Split(r.URL.Path, "/")
-	if len(ss) != 1 {
+	key, err := extractKeyFromPath(r.URL.Path)
+	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	key := ss[0]
 
 	switch r.Method {
 	case "GET":
@@ -126,6 +125,14 @@ func (o *Orochi) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.WriteHeader(http.StatusNotFound)
 	}
+}
+
+func extractKeyFromPath(path string) (string, error) {
+	ss := strings.Split(path, "/")
+	if len(ss) != 2 {
+		return "", fmt.Errorf("[%s] is invalid. number of element must be 1 (but %d specified)", path, len(ss)-1)
+	}
+	return ss[1], nil
 }
 
 func (o *Orochi) askGet(port int, key string) (string, bool) {
