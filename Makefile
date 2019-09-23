@@ -1,4 +1,6 @@
 
+all:
+	go build
 
 launch:
 	nohup ./orochi --port 3000 >> log.txt 2>&1 &
