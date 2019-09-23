@@ -12,7 +12,7 @@ import (
 	"github.com/pankona/orochi"
 )
 
-func setup() ([]int, func() []error) {
+func setup() ([]int, []*orochi.Orochi, func() []error) {
 	var (
 		portlist   = []int{3000, 3001, 3002}
 		serverlist = []*orochi.Orochi{}
@@ -30,7 +30,7 @@ func setup() ([]int, func() []error) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	return portlist, func() []error {
+	return portlist, serverlist, func() []error {
 		errorlist := []error{}
 		for i := range serverlist {
 			err := serverlist[i].Shutdown()
@@ -43,7 +43,7 @@ func setup() ([]int, func() []error) {
 }
 
 func TestTypicalUsecase(t *testing.T) {
-	portlist, teardown := setup()
+	portlist, serverlist, teardown := setup()
 
 	defer func() {
 		errlist := teardown()
@@ -52,7 +52,15 @@ func TestTypicalUsecase(t *testing.T) {
 		}
 	}()
 
-	err := post(portlist[0], "hoge", "fuga")
+	ret, err := get(portlist[0], "hoge")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ret != "" {
+		t.Fatalf("unexpected result. got [%s], want [%s]", ret, "")
+	}
+
+	err = post(portlist[0], "hoge", "fuga")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -99,6 +107,36 @@ func TestTypicalUsecase(t *testing.T) {
 			t.Errorf("unexpected result. got [%s], want [%s]", ret, "bar")
 		}
 	}
+
+	err = restart(serverlist[1])
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, port := range portlist {
+		ret, err := get(port, "foo")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if ret != "bar" {
+			t.Errorf("unexpected result. got [%s], want [%s]", ret, "bar")
+		}
+	}
+}
+
+func restart(o *orochi.Orochi) error {
+	err := o.Shutdown()
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		_ = o.Serve(o.Port())
+	}()
+
+	time.Sleep(500 * time.Millisecond)
+	return nil
 }
 
 func post(port int, key, value string) error {

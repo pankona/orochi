@@ -36,6 +36,11 @@ func (o *Orochi) Serve(port int) error {
 	return o.server.ListenAndServe()
 }
 
+// Port returns its port to listen
+func (o *Orochi) Port() int {
+	return o.port
+}
+
 // Shutdown stops served http server in graceful
 func (o *Orochi) Shutdown() error {
 	return o.server.Shutdown(context.Background())
