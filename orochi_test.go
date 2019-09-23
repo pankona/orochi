@@ -12,10 +12,11 @@ import (
 	"github.com/pankona/orochi"
 )
 
-var portlist = []int{3000, 3001, 3002}
-
-func setup() func() []error {
-	serverlist := []*orochi.Orochi{}
+func setup() ([]int, func() []error) {
+	var (
+		portlist   = []int{3000, 3001, 3002}
+		serverlist = []*orochi.Orochi{}
+	)
 	for _, v := range portlist {
 		go func(p int) {
 			o := &orochi.Orochi{PortList: portlist}
@@ -29,7 +30,7 @@ func setup() func() []error {
 
 	time.Sleep(100 * time.Millisecond)
 
-	return func() []error {
+	return portlist, func() []error {
 		errorlist := []error{}
 		for i := range serverlist {
 			err := serverlist[i].Shutdown()
@@ -42,7 +43,7 @@ func setup() func() []error {
 }
 
 func TestTypicalUsecase(t *testing.T) {
-	teardown := setup()
+	portlist, teardown := setup()
 
 	defer func() {
 		errlist := teardown()
