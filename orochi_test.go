@@ -56,7 +56,7 @@ func TestTypicalUsecase(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if ret != "" {
-		t.Fatalf("unexpected result. got [%s], want [%s]", ret, "")
+		t.Fatalf("unexpected result: got [%s], want [%s]", ret, "")
 	}
 
 	err = post(serverlist[0], "hoge", "fuga")
@@ -71,7 +71,7 @@ func TestTypicalUsecase(t *testing.T) {
 		}
 
 		if ret != "fuga" {
-			t.Errorf("unexpected result. got [%s], want [%s]", ret, "fuga")
+			t.Errorf("unexpected result: got [%s], want [%s]", ret, "fuga")
 		}
 	}
 
@@ -87,7 +87,7 @@ func TestTypicalUsecase(t *testing.T) {
 		}
 
 		if ret != "piyo" {
-			t.Errorf("unexpected result. got [%s], want [%s]", ret, "piyo")
+			t.Errorf("unexpected result: got [%s], want [%s]", ret, "piyo")
 		}
 	}
 
@@ -103,7 +103,7 @@ func TestTypicalUsecase(t *testing.T) {
 		}
 
 		if ret != "bar" {
-			t.Errorf("unexpected result. got [%s], want [%s]", ret, "bar")
+			t.Errorf("unexpected result: got [%s], want [%s]", ret, "bar")
 		}
 	}
 
@@ -119,7 +119,7 @@ func TestTypicalUsecase(t *testing.T) {
 		}
 
 		if ret != "bar" {
-			t.Errorf("unexpected result. got [%s], want [%s]", ret, "bar")
+			t.Errorf("unexpected result: got [%s], want [%s]", ret, "bar")
 		}
 	}
 }
@@ -138,6 +138,35 @@ func TestUnsupportedPath(t *testing.T) {
 	key := "hoge"
 
 	resp, err := c.Get(fmt.Sprintf("http://127.0.0.1:%s/unknown/path/%s", p, key))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("unexpected result: got [%d], want [%d]", resp.StatusCode, http.StatusNotFound)
+	}
+}
+
+func TestUnsupportedMethod(t *testing.T) {
+	serverlist, teardown := setup()
+	defer func() {
+		errlist := teardown()
+		if len(errlist) != 0 {
+			t.Log(errlist)
+		}
+	}()
+
+	c := http.Client{}
+	p := strconv.Itoa(serverlist[0].Port())
+	key := "hoge"
+
+	req, err := http.NewRequest("Delete", fmt.Sprintf("http://127.0.0.1:%s/%s", p, key), nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	resp, err := c.Do(req)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
