@@ -15,10 +15,10 @@ import (
 var portlist = []int{3000, 3001, 3002}
 
 func setup() func() []error {
-	serverlist := []*orochi.Server{}
+	serverlist := []*orochi.Orochi{}
 	for _, v := range portlist {
 		go func(p int) {
-			o := &orochi.Server{PortList: portlist}
+			o := &orochi.Orochi{PortList: portlist}
 			serverlist = append(serverlist, o)
 			o.Serve(p)
 		}(v)
