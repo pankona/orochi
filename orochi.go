@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-type Orochi struct {
+type Server struct {
 	PortList []int
 
 	server  *http.Server
@@ -18,25 +18,25 @@ type Orochi struct {
 	kvstore map[string]string
 }
 
-func (o *Orochi) Serve(port int) error {
-	o.port = port
-	o.kvstore = map[string]string{}
+func (s *Server) Serve(port int) error {
+	s.port = port
+	s.kvstore = map[string]string{}
 
-	o.server = &http.Server{
-		Addr:    ":" + strconv.Itoa(o.port),
-		Handler: o,
+	s.server = &http.Server{
+		Addr:    ":" + strconv.Itoa(s.port),
+		Handler: s,
 	}
-	log.Printf("server will start on port: %d\n", o.port)
-	return o.server.ListenAndServe()
+	log.Printf("server will start on port: %d\n", s.port)
+	return s.server.ListenAndServe()
 }
 
-func (o *Orochi) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		ss := strings.Split(r.URL.Path, "/")
 		key := ss[len(ss)-1]
 
-		v, ok := o.kvstore[key]
+		v, ok := s.kvstore[key]
 		if !ok {
 			q := r.URL.Query()
 			if q["asked"] != nil {
@@ -45,20 +45,20 @@ func (o *Orochi) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			// ask to other server
 			log.Println("missed. ask to other server")
-			for _, p := range o.PortList {
-				if o.port == p {
+			for _, p := range s.PortList {
+				if s.port == p {
 					log.Println("skip because this is me")
 					continue
 				}
 
-				v, ok := o.askGet(p, key)
+				v, ok := s.askGet(p, key)
 				if !ok || v == "" {
 					log.Printf("missed by port: %d", p)
 					continue
 				}
 
 				log.Printf("hit on other server: %d", p)
-				o.kvstore[key] = string(v)
+				s.kvstore[key] = string(v)
 				log.Printf("stored: %s\n", string(v))
 
 				w.WriteHeader(200)
@@ -81,7 +81,7 @@ func (o *Orochi) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			panic("TODO: error handling")
 		}
 
-		o.kvstore[key] = string(v)
+		s.kvstore[key] = string(v)
 		log.Printf("stored: %s\n", string(v))
 
 		q := r.URL.Query()
@@ -89,8 +89,8 @@ func (o *Orochi) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		for _, p := range o.PortList {
-			err := o.askPost(p, key, string(v))
+		for _, p := range s.PortList {
+			err := s.askPost(p, key, string(v))
 			if err != nil {
 				log.Printf("failed to askPost: %v", err)
 			}
@@ -102,7 +102,7 @@ func (o *Orochi) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (o *Orochi) askGet(port int, key string) (string, bool) {
+func (s *Server) askGet(port int, key string) (string, bool) {
 	c := http.Client{}
 	p := strconv.Itoa(port)
 	resp, err := c.Get(fmt.Sprintf("http://127.0.0.1:%s/%s?asked=true", p, key))
@@ -126,7 +126,7 @@ func (o *Orochi) askGet(port int, key string) (string, bool) {
 	return string(v), true
 }
 
-func (o *Orochi) askPost(port int, key, value string) error {
+func (s *Server) askPost(port int, key, value string) error {
 	c := http.Client{}
 	p := strconv.Itoa(port)
 	resp, err := c.Post(fmt.Sprintf("http://127.0.0.1:%s/%s?asked=true", p, key), "", bytes.NewBuffer([]byte(value)))
