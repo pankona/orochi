@@ -11,27 +11,43 @@ import (
 	"strings"
 )
 
-var (
-	kvstore  = map[string]string{}
-	myport   = flag.Int("port", 3000, "specify port number of http server")
-	portList = []int{3000, 3001, 3002}
-)
+var portList = []int{3000, 3001, 3002}
 
 func main() {
+	p := flag.Int("port", 3000, "specify port number of http server")
 	flag.Parse()
 
-	http.HandleFunc("/", handler)
-	log.Printf("server will start on port: %d\n", *myport)
-	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(*myport), nil))
+	o := &Orochi{}
+	log.Fatal(o.Serve(*p))
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
+type Orochi struct {
+	server *http.Server
+	port   int
+
+	kvstore map[string]string
+}
+
+func (o *Orochi) Serve(port int) error {
+	o.port = port
+	o.server = &http.Server{
+		Addr: ":" + strconv.Itoa(o.port),
+		Handler: &Orochi{
+			port:    o.port,
+			kvstore: map[string]string{},
+		},
+	}
+	log.Printf("server will start on port: %d\n", o.port)
+	return o.server.ListenAndServe()
+}
+
+func (o *Orochi) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		ss := strings.Split(r.URL.Path, "/")
 		key := ss[len(ss)-1]
 
-		v, ok := kvstore[key]
+		v, ok := o.kvstore[key]
 		if !ok {
 			q := r.URL.Query()
 			if q["asked"] != nil {
@@ -41,19 +57,19 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			// ask to other server
 			log.Println("missed. ask to other server")
 			for _, p := range portList {
-				if *myport == p {
+				if o.port == p {
 					log.Println("skip because this is me")
 					continue
 				}
 
-				v, ok := askGet(p, key)
-				if !ok {
+				v, ok := o.askGet(p, key)
+				if !ok || v == "" {
 					log.Printf("missed by port: %d", p)
 					continue
 				}
 
 				log.Printf("hit on other server: %d", p)
-				kvstore[key] = string(v)
+				o.kvstore[key] = string(v)
 				log.Printf("stored: %s\n", string(v))
 
 				w.WriteHeader(200)
@@ -76,7 +92,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			panic("TODO: error handling")
 		}
 
-		kvstore[key] = string(v)
+		o.kvstore[key] = string(v)
 		log.Printf("stored: %s\n", string(v))
 
 		q := r.URL.Query()
@@ -85,7 +101,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		for _, p := range portList {
-			err := askPost(p, key, string(v))
+			err := o.askPost(p, key, string(v))
 			if err != nil {
 				log.Printf("failed to askPost: %v", err)
 			}
@@ -97,7 +113,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func askGet(port int, key string) (string, bool) {
+func (o *Orochi) askGet(port int, key string) (string, bool) {
 	c := http.Client{}
 	p := strconv.Itoa(port)
 	resp, err := c.Get(fmt.Sprintf("http://127.0.0.1:%s/%s?asked=true", p, key))
@@ -121,7 +137,7 @@ func askGet(port int, key string) (string, bool) {
 	return string(v), true
 }
 
-func askPost(port int, key, value string) error {
+func (o *Orochi) askPost(port int, key, value string) error {
 	c := http.Client{}
 	p := strconv.Itoa(port)
 	resp, err := c.Post(fmt.Sprintf("http://127.0.0.1:%s/%s?asked=true", p, key), "", bytes.NewBuffer([]byte(value)))
