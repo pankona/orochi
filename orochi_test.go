@@ -1,4 +1,4 @@
-package main
+package orochi_test
 
 import (
 	"bytes"
