@@ -141,7 +141,11 @@ func TestUnsupportedPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Fatalf("failed to close response body: %v", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("unexpected result: got [%d], want [%d]", resp.StatusCode, http.StatusNotFound)
@@ -170,7 +174,11 @@ func TestUnsupportedMethod(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Fatalf("failed to close response body: %v", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("unexpected result: got [%d], want [%d]", resp.StatusCode, http.StatusNotFound)
