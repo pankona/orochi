@@ -11,6 +11,7 @@ import (
 	"strings"
 )
 
+// Orochi is a struct to launch an Orochi server
 type Orochi struct {
 	PortList []int
 
@@ -19,6 +20,7 @@ type Orochi struct {
 	kvstore map[string]string
 }
 
+// Serve starts to serve a http server with specified port
 func (o *Orochi) Serve(port int) error {
 	o.port = port
 	o.kvstore = map[string]string{}
@@ -34,6 +36,7 @@ func (o *Orochi) Serve(port int) error {
 	return o.server.ListenAndServe()
 }
 
+// Shutdown stops served http server in graceful
 func (o *Orochi) Shutdown() error {
 	return o.server.Shutdown(context.Background())
 }
