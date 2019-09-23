@@ -46,7 +46,7 @@ func (o *Orochi) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		v, ok := o.kvstore[key]
 		if ok {
-			w.WriteHeader(200)
+			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(v))
 			log.Printf("return %s", v)
 			return
@@ -75,16 +75,17 @@ func (o *Orochi) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			o.kvstore[key] = string(v)
 			log.Printf("stored: %s\n", string(v))
 
-			w.WriteHeader(200)
+			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(v))
 			return
 		}
-
 		w.WriteHeader(http.StatusNotFound)
+
 	case "POST":
 		v, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			panic("TODO: error handling")
+			w.WriteHeader(500)
+			return
 		}
 
 		o.kvstore[key] = string(v)
@@ -101,8 +102,8 @@ func (o *Orochi) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				log.Printf("failed to askPost: %v", err)
 			}
 		}
+		w.WriteHeader(http.StatusOK)
 
-		w.WriteHeader(200)
 	default:
 		w.WriteHeader(http.StatusNotFound)
 	}
@@ -112,7 +113,7 @@ func (o *Orochi) askGet(port int, key string) (string, bool) {
 	c := http.Client{}
 	p := strconv.Itoa(port)
 
-	resp, err := c.Get(fmt.Sprintf("http://127.0.0.1:%s/%s?asked=true", p, key))
+	resp, err := c.Get(fmt.Sprintf("http://127.0.0.1:%s/%s?asked=1", p, key))
 	if err != nil {
 		log.Println(err)
 		return "", false
@@ -136,7 +137,7 @@ func (o *Orochi) askPost(port int, key, value string) error {
 	c := http.Client{}
 	p := strconv.Itoa(port)
 
-	resp, err := c.Post(fmt.Sprintf("http://127.0.0.1:%s/%s?asked=true", p, key), "", bytes.NewBuffer([]byte(value)))
+	resp, err := c.Post(fmt.Sprintf("http://127.0.0.1:%s/%s?asked=1", p, key), "", bytes.NewBuffer([]byte(value)))
 	if err != nil {
 		return err
 	}
